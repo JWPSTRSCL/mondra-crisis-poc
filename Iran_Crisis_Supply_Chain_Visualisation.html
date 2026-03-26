@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mondra — Global Supply Chain Crisis Visualisation</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================
+   ACCESSIBILITY — REDUCED MOTION
+   ================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* ================================================
+   DESIGN TOKENS
+   ================================================ */
+:root {
+  --mondra-dark: #060b0a;
+  --mondra-navy: #0d1f1d;
+  --mondra-teal: #3aaca3;
+  --mondra-cyan: #5ce0d6;
+  --mondra-green: #3aaca3;
+  --mondra-amber: #e8a838;
+  --mondra-gold: #f5c842;
+  --mondra-red: #d94040;
+  --mondra-orange: #e86830;
+  --mondra-indigo: #6366f1;
+  --mondra-bg: #060e0d;
+  --card-bg: rgba(12,28,26,0.85);
+  --card-solid: #0c1c1a;
+  --text-primary: #eaf5f3;
+  --text-secondary: #6d9e9a;
+  --border: rgba(58,172,163,0.12);
+  --border-strong: rgba(58,172,163,0.25);
+  --glass-bg: rgba(10,24,22,0.88);
+  --glass-blur: 20px;
+}
+
+/* ================================================
+   RESET & BASE
+   ================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Poppins', 'Inter', -apple-system, sans-serif;
+  background: var(--mondra-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* Dot grid pattern */
+  background-image: radial-gradient(rgba(58,172,163,0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ================================================
+   TOPBAR — Glassmorphism + Border Beam
+   ================================================ */
+.topbar {
+  background: rgba(6,11,10,0.92);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-bottom: 1px solid var(--border);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  /* Animated gradient border-bottom */
+  background-image: linear-gradient(var(--mondra-dark), var(--mondra-dark)),
+    linear-gradient(90deg, transparent, var(--mondra-teal), var(--mondra-red), var(--mondra-amber), transparent);
+  background-size: 100% calc(100% - 1px), 100% 1px;
+  background-position: top, bottom;
+  background-repeat: no-repeat;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+
+/* Logo */
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 28px; height: 28px;
+  background: conic-gradient(from 180deg, var(--mondra-teal), var(--mondra-cyan), var(--mondra-teal));
+  border-radius: 6px;
+  transform: rotate(45deg);
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: var(--mondra-dark);
+  border-radius: 3px;
+}
+.logo-text { font-size: 20px; font-weight: 700; color: var(--mondra-teal); letter-spacing: 1.5px; font-family: 'Inter', sans-serif; }
+.logo-sub { color: var(--text-secondary); font-weight: 400; font-size: 12px; margin-left: 6px; letter-spacing: 0.5px; }
+
+/* Crisis badge with border beam */
+.crisis-badge {
+  position: relative;
+  background: rgba(217,64,64,0.08);
+  border: 1px solid rgba(217,64,64,0.3);
+  color: var(--mondra-red);
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+}
+.crisis-badge::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  border-radius: 20px;
+  background: conic-gradient(from var(--beam-angle, 0deg), transparent 0%, transparent 70%, var(--mondra-red) 80%, rgba(217,64,64,0.6) 85%, transparent 95%);
+  animation: borderBeam 3s linear infinite;
+  z-index: -1;
+}
+@keyframes borderBeam { to { --beam-angle: 360deg; } }
+@property --beam-angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+/* Live dot */
+.live-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--mondra-red);
+  margin-right: 6px;
+  animation: livePulse 2s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes livePulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(217,64,64,0.6)} 50%{opacity:0.7;box-shadow:0 0 0 6px rgba(217,64,64,0)} }
+
+/* Clock */
+.clock {
+  font-family: 'Inter', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.8px;
+}
+
+/* ================================================
+   VIEW TOGGLE — Sliding Pill
+   ================================================ */
+.view-toggle {
+  position: relative;
+  display: flex;
+  gap: 0;
+  background: rgba(12,28,26,0.7);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  overflow: hidden;
+}
+.view-btn {
+  position: relative;
+  z-index: 2;
+  padding: 7px 18px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  transition: color 0.25s;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.view-btn:hover { color: var(--text-primary); }
+.view-btn.active { color: white; }
+.view-btn svg { width: 14px; height: 14px; opacity: 0.7; }
+.view-btn.active svg { opacity: 1; }
+
+/* Sliding pill indicator */
+.view-pill {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  left: 3px;
+  height: calc(100% - 6px);
+  background: var(--mondra-teal);
+  border-radius: 8px;
+  transition: left 0.35s cubic-bezier(0.4, 0, 0.15, 1), width 0.35s cubic-bezier(0.4, 0, 0.15, 1);
+  box-shadow: 0 0 20px rgba(58,172,163,0.3), 0 0 6px rgba(58,172,163,0.15);
+}
+
+/* ================================================
+   MAIN CONTAINER
+   ================================================ */
+.viz-container { position: relative; width: 100%; height: calc(100vh - 51px); overflow: hidden; }
+
+/* ================================================
+   VIEW PANELS
+   ================================================ */
+.geo-view, .node-view, .flow-view {
+  position: absolute; inset: 0;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.geo-view.hidden, .node-view.hidden, .flow-view.hidden {
+  opacity: 0; pointer-events: none; transform: scale(0.98);
+}
+
+/* Map wrap */
+.map-wrap { position: absolute; inset: 0; }
+.map-wrap canvas { width: 100%; height: 100%; }
+
+/* ================================================
+   MAP OVERLAY PANEL — Glassmorphism
+   ================================================ */
+.map-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 18px;
+  width: 310px;
+  z-index: 10;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.map-overlay h2 { font-size: 14px; font-weight: 600; margin-bottom: 4px; font-family: 'Inter', sans-serif; }
+.map-overlay p { font-size: 11px; color: var(--text-secondary); margin-bottom: 14px; line-height: 1.6; }
+.legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 11px; color: var(--text-secondary); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
+.legend-line { width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+/* ================================================
+   STATS BAR — Animated Counters + Glow
+   ================================================ */
+.stats-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(6,11,10,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-around;
+  z-index: 10;
+}
+.stat-item {
+  text-align: center;
+  position: relative;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(12,28,26,0.5);
+  border: 1px solid var(--border);
+  min-width: 120px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.stat-item:hover { border-color: var(--border-strong); }
+.stat-item.red-glow { box-shadow: 0 0 20px rgba(217,64,64,0.08); }
+.stat-item.amber-glow { box-shadow: 0 0 20px rgba(232,168,56,0.06); }
+.stat-item.teal-glow { box-shadow: 0 0 20px rgba(58,172,163,0.06); }
+.stat-val { font-size: 20px; font-weight: 700; font-family: 'Inter', sans-serif; letter-spacing: -0.5px; }
+.stat-val.red { color: var(--mondra-red); }
+.stat-val.amber { color: var(--mondra-amber); }
+.stat-val.teal { color: var(--mondra-teal); }
+.stat-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; font-weight: 500; }
+
+/* Mini sparkline */
+.stat-spark { margin-top: 4px; height: 16px; }
+.stat-spark canvas { width: 60px; height: 16px; }
+
+/* ================================================
+   TOOLTIP — Glassmorphism + Accent Bar
+   ================================================ */
+.map-tooltip {
+  position: absolute;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 0;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 100;
+  max-width: 290px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  transform: translateY(4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+.map-tooltip.show { opacity: 1; transform: translateY(0); }
+.tooltip-accent { height: 3px; width: 100%; }
+.tooltip-inner { padding: 12px 14px; }
+.tooltip-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; font-family: 'Inter', sans-serif; }
+.tooltip-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px solid rgba(58,172,163,0.06); }
+.tooltip-row:last-child { border: none; }
+.tooltip-label { color: var(--text-secondary); font-size: 11px; }
+.tooltip-val { font-weight: 600; font-size: 11px; }
+.tooltip-val.red { color: var(--mondra-red); }
+.tooltip-val.amber { color: var(--mondra-amber); }
+.tooltip-val.teal { color: var(--mondra-teal); }
+
+/* ================================================
+   NODE CASCADE VIEW
+   ================================================ */
+.node-view { padding: 20px; overflow-y: auto; }
+.cascade-header { text-align: center; margin-bottom: 20px; }
+.cascade-header h1 { font-size: 20px; font-weight: 700; font-family: 'Inter', sans-serif; }
+.cascade-header p { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+.force-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 160px);
+  background: radial-gradient(ellipse at center, rgba(14,31,29,0.9) 0%, rgba(6,14,13,1) 70%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.force-canvas-wrap canvas { width: 100%; height: 100%; }
+
+.force-legend {
+  position: absolute; top: 16px; left: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 12px 14px;
+  z-index: 10;
+}
+.force-legend h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600; }
+
+.force-controls {
+  position: absolute; top: 16px; right: 16px;
+  display: flex; gap: 0;
+  background: rgba(12,28,26,0.7);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  z-index: 10;
+  overflow: hidden;
+}
+.force-btn {
+  position: relative;
+  z-index: 2;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+.force-btn:hover { color: var(--text-primary); }
+.force-btn.active { color: white; }
+.force-pill {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  height: calc(100% - 6px);
+  background: var(--mondra-teal);
+  border-radius: 8px;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.15, 1), width 0.3s cubic-bezier(0.4, 0, 0.15, 1);
+  box-shadow: 0 0 16px rgba(58,172,163,0.25);
+}
+
+/* ================================================
+   FLOW VIEW
+   ================================================ */
+.flow-view { overflow: hidden; }
+
+/* ================================================
+   DETAIL PANEL — Animated Gradient Border
+   ================================================ */
+.detail-panel {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 340px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  padding: 0;
+  z-index: 20;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s, transform 0.35s cubic-bezier(0.4, 0, 0.15, 1);
+  transform: translateX(24px);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+.detail-panel.show { opacity: 1; pointer-events: all; transform: translateX(0); }
+.detail-risk-bar { height: 3px; border-radius: 14px 14px 0 0; }
+.detail-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+.detail-header h3 { font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; }
+.detail-header .detail-type { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; font-weight: 600; }
+.detail-body { padding: 14px 16px; }
+.detail-row {
+  display: flex; justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(58,172,163,0.06);
+  font-size: 12px;
+}
+.detail-row:last-child { border: none; }
+.detail-close {
+  position: absolute; top: 10px; right: 12px;
+  background: rgba(58,172,163,0.1);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.detail-close:hover { background: rgba(217,64,64,0.15); border-color: rgba(217,64,64,0.3); color: var(--mondra-red); transform: rotate(90deg); }
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+@media (max-width: 768px) {
+  .map-overlay { width: 240px; padding: 12px; }
+  .stats-bar { flex-wrap: wrap; gap: 6px; padding: 10px 12px; }
+  .stat-item { min-width: 90px; padding: 6px 10px; }
+  .detail-panel { width: 280px; }
+  .topbar { padding: 8px 12px; }
+  .logo-sub { display: none; }
+  .clock { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================
+     TOPBAR
+     ================================================ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-mark"></div>
+      <span class="logo-text">MONDRA</span>
+      <span class="logo-sub">Supply Chain Crisis Intelligence</span>
+    </div>
+    <div class="crisis-badge">
+      <span class="live-dot"></span>LIVE: Iran Conflict — Strait of Hormuz
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="view-toggle" id="view-toggle">
+      <div class="view-pill" id="view-pill"></div>
+      <button class="view-btn active" data-view="geo" aria-label="Geographic Map view" onclick="switchView('geo', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+        Map
+      </button>
+      <button class="view-btn" data-view="node" aria-label="Node Cascade view" onclick="switchView('node', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4m-4.5 3.5L10 14m4 0l2.5 1.5"/></svg>
+        Cascade
+      </button>
+      <button class="view-btn" data-view="flow" aria-label="Flow Analysis view" onclick="switchView('flow', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16h16"/><path d="M4 16l4-4 4 2 4-6 4-2"/></svg>
+        Flow
+      </button>
+    </div>
+    <div class="clock" id="clock"></div>
+  </div>
+</div>
+
+<div class="viz-container">
+  <!-- VIEW 1: GEOGRAPHIC MAP -->
+  <div class="geo-view" id="view-geo">
+    <div class="map-wrap" id="map-container"></div>
+    <div class="map-overlay">
+      <h2>Global Supply Chain Impact</h2>
+      <p>Iran crisis propagation across trade routes and sourcing nodes. Node size = revenue exposure. Animated routes show disrupted flows.</p>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-red);color:var(--mondra-red)"></div> Crisis epicentre / Halted</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-amber);color:var(--mondra-amber)"></div> High disruption / Rerouting</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-teal);color:var(--mondra-teal)"></div> Alternative source activated</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#3d6e6b;color:#3d6e6b"></div> Monitoring / Low impact</div>
+      <div class="legend-row"><div class="legend-line" style="background:var(--mondra-red)"></div> Disrupted route</div>
+      <div class="legend-row"><div class="legend-line" style="background:var(--mondra-teal);opacity:0.6"></div> Alternative route</div>
+    </div>
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item red-glow"><div class="stat-val red" data-target="47832" data-prefix="">0</div><div class="stat-label">SKUs Affected</div></div>
+      <div class="stat-item red-glow"><div class="stat-val red" data-target="312" data-prefix="£" data-suffix="M">£0M</div><div class="stat-label">Revenue at Risk</div></div>
+      <div class="stat-item amber-glow"><div class="stat-val amber" data-target="1247" data-prefix="">0</div><div class="stat-label">Suppliers Impacted</div></div>
+      <div class="stat-item amber-glow"><div class="stat-val amber" data-target="12" data-prefix="">0</div><div class="stat-label">Countries Disrupted</div></div>
+      <div class="stat-item teal-glow"><div class="stat-val teal" data-target="6" data-prefix="">0</div><div class="stat-label">Alt. Sources Active</div></div>
+      <div class="stat-item teal-glow"><div class="stat-val teal" data-target="16.5" data-prefix="£" data-suffix="M">£0M</div><div class="stat-label">Mitigation Deployed</div></div>
+    </div>
+  </div>
+
+  <!-- VIEW 2: NODE CASCADE -->
+  <div class="node-view hidden" id="view-node">
+    <div class="cascade-header">
+      <h1>Supply Chain Impact Cascade</h1>
+      <p>Interactive force-directed graph — Crisis Event → Raw Material → Supplier → Product Category → SKU Impact</p>
+    </div>
+    <div class="force-canvas-wrap">
+      <canvas id="force-canvas"></canvas>
+      <div class="force-legend">
+        <h3>Node Types</h3>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-red);color:var(--mondra-red)"></div> Crisis Event</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-amber);color:var(--mondra-amber)"></div> Commodity</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-teal);color:var(--mondra-teal)"></div> Product Category</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-cyan);color:var(--mondra-cyan)"></div> SKU</div>
+        <div class="legend-row"><div class="legend-dot" style="background:var(--mondra-indigo);color:var(--mondra-indigo)"></div> Supplier</div>
+      </div>
+      <div class="force-controls" id="force-controls">
+        <div class="force-pill" id="force-pill"></div>
+        <button class="force-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="force-btn" data-filter="critical" onclick="setFilter('critical', this)">Critical</button>
+        <button class="force-btn" data-filter="pistachio" onclick="setFilter('pistachio', this)">Pistachio</button>
+        <button class="force-btn" data-filter="saffron" onclick="setFilter('saffron', this)">Saffron</button>
+        <button class="force-btn" data-filter="fertiliser" onclick="setFilter('fertiliser', this)">Fertiliser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW 3: FLOW ANALYSIS -->
+  <div class="flow-view hidden" id="view-flow">
+    <canvas id="flow-canvas"></canvas>
+    <div class="map-overlay" style="width:290px">
+      <h2>Disruption Flow Analysis</h2>
+      <p>Animated particle flow showing how disruption propagates from geopolitical events through the supply chain to consumer products. Width = revenue exposure.</p>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div class="legend-row"><div class="legend-line" style="background:var(--mondra-red);width:30px;height:6px;border-radius:3px"></div> Critical path (halted)</div>
+        <div class="legend-row"><div class="legend-line" style="background:var(--mondra-amber);width:30px;height:4px;border-radius:3px"></div> High impact (constrained)</div>
+        <div class="legend-row"><div class="legend-line" style="background:var(--mondra-teal);width:30px;height:3px;border-radius:3px"></div> Medium impact (delayed)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="map-tooltip" id="tooltip"></div>
+
+  <!-- Detail panel -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-risk-bar" id="detail-risk-bar"></div>
+    <button class="detail-close" onclick="hideDetail()" aria-label="Close detail panel">&times;</button>
+    <div class="detail-header" id="detail-header"></div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
+</div>
+
+<script>
+// =========================================
+// UTILITIES
+// =========================================
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Animated number counter
+function animateCounters() {
+  document.querySelectorAll('.stat-val[data-target]').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const isFloat = target % 1 !== 0;
+    const duration = reducedMotion ? 0 : 1800;
+    const start = performance.now();
+    function step(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const current = target * eased;
+      el.textContent = prefix + (isFloat ? current.toFixed(1) : Math.round(current).toLocaleString()) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+// Real-time clock
+function updateClock() {
+  const now = new Date();
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const d = now.getUTCDate().toString().padStart(2, '0');
+  const m = months[now.getUTCMonth()];
+  const y = now.getUTCFullYear();
+  const h = now.getUTCHours().toString().padStart(2, '0');
+  const min = now.getUTCMinutes().toString().padStart(2, '0');
+  document.getElementById('clock').textContent = `${d} ${m} ${y} — ${h}:${min} UTC`;
+}
+updateClock();
+setInterval(updateClock, 30000);
+
+// Pill position updater
+function updatePill(container, pillId, activeBtn) {
+  const pill = document.getElementById(pillId);
+  if (!pill || !activeBtn) return;
+  const containerRect = container.getBoundingClientRect();
+  const btnRect = activeBtn.getBoundingClientRect();
+  pill.style.left = (btnRect.left - containerRect.left) + 'px';
+  pill.style.width = btnRect.width + 'px';
+}
+
+// Init pills on load
+requestAnimationFrame(() => {
+  const vt = document.getElementById('view-toggle');
+  const activeView = vt.querySelector('.view-btn.active');
+  if (activeView) updatePill(vt, 'view-pill', activeView);
+
+  const fc = document.getElementById('force-controls');
+  const activeFilter = fc.querySelector('.force-btn.active');
+  if (activeFilter) updatePill(fc, 'force-pill', activeFilter);
+});
+
+// =========================================
+// DATA MODEL
+// =========================================
+const NODES = {
+  iran: { lat: 32.4, lng: 53.7, label: 'Iran', type: 'crisis', risk: 'critical', rev: '£225M EU food trade', detail: { 'Export Ban': '3 March 2026', 'Commodities Halted': 'Pistachios, Saffron, Dates, Raisins', 'EU Import Value': '€225M (2025)', 'Global Saffron Share': '>90%', 'Pistachio EU Share': '17%' } },
+  hormuz: { lat: 26.6, lng: 56.3, label: 'Strait of Hormuz', type: 'crisis', risk: 'critical', rev: '33% global fertiliser', detail: { 'Status': 'Closed to commercial shipping', 'Urea Transit': '46% of global supply', 'Nitrate Fertiliser': '38% of global supply', 'Oil Transit': '~20% global supply', 'Maersk': 'Indefinite suspension' } },
+  gulf_fert: { lat: 25.3, lng: 51.5, label: 'Gulf Fertilisers', type: 'disrupted', risk: 'critical', rev: '£180M fresh produce', detail: { 'Urea Futures': '+34%', 'Phosphates': '+22%', 'Ammonia (Fitch)': '+25%', 'Supply Contraction': '33%', 'Impact Lag': '60-90 days to farm gate' } },
+  gulf_petro: { lat: 25.8, lng: 50.5, label: 'Gulf Petrochemicals', type: 'disrupted', risk: 'high', rev: '£48M packaging', detail: { 'HDPE': '+18%', 'Polypropylene': '+15%', 'Impact': '680,000 plastic-wrapped SKUs', 'Rerouting Cost': '+$933K/voyage', 'Transit Delay': '+16 days via Cape' } },
+  usa_ca: { lat: 36.7, lng: -119.8, label: 'California, USA', type: 'alternative', risk: 'active', rev: 'Pistachios — $7.20/kg', detail: { 'Commodity': 'Pistachios', 'Spot Price': '$7.20/kg (vs Iran $5.60)', 'Premium': '+28.6%', 'Lead Time': '3-4 weeks', 'Quality': 'Grade AA = Iran Grade 1', 'Capacity': 'Sufficient for 90-day cover' } },
+  turkey: { lat: 38.9, lng: 35.2, label: 'Turkey', type: 'alternative', risk: 'constrained', rev: 'Pistachios + Raisins', detail: { 'Commodities': 'Pistachios, Sultanas, Raisins', 'Raisin Spot': '+41% since Feb 28', 'Pistachio': 'Available but premium', 'Constraint': '2025 crop reduced', 'Lead Time': '4-6 weeks' } },
+  spain: { lat: 40.4, lng: -3.7, label: 'Spain', type: 'alternative', risk: 'constrained', rev: 'Saffron (limited)', detail: { 'Commodity': 'Saffron', 'Buffer Stock': '~4 weeks remaining', 'Domestic Production': '1,500kg/yr vs Iran 400,000kg', 'Spot Price': '+62%', 'Risk': 'Exhaustion within 30 days' } },
+  tunisia: { lat: 33.9, lng: 9.5, label: 'Tunisia', type: 'alternative', risk: 'active', rev: 'Dates', detail: { 'Commodity': 'Dates (Deglet Nour)', 'Capacity': 'Good availability', 'Premium': '+12% vs Iran', 'Lead Time': '3-5 weeks', 'Quality': 'EU-certified' } },
+  south_africa: { lat: -30.6, lng: 22.9, label: 'South Africa', type: 'alternative', risk: 'active', rev: 'Sultanas', detail: { 'Commodity': 'Sultanas / Raisins', 'Season': 'Harvest Feb-Apr', 'Lead Time': '6-8 weeks', 'Premium': '+18%', 'Capacity': 'Moderate' } },
+  australia: { lat: -25.3, lng: 133.8, label: 'Australia', type: 'monitoring', risk: 'low', rev: 'Sultanas backup', detail: { 'Commodity': 'Sultanas backup', 'Lead Time': '8-10 weeks', 'Premium': '+25%', 'Status': 'Standby option' } },
+  afghanistan: { lat: 33.9, lng: 67.7, label: 'Afghanistan', type: 'monitoring', risk: 'low', rev: 'Saffron (quality gap)', detail: { 'Commodity': 'Saffron', 'Issue': 'Quality inconsistent', 'EU Certification': 'Most farms lack it', 'Lead Time': '12+ weeks', 'Production': '~8,000kg/yr' } },
+  uk: { lat: 54.0, lng: -2.0, label: 'United Kingdom', type: 'destination', risk: 'exposed', rev: '£312M revenue at risk', detail: { 'SKUs Affected': '47,832', 'Revenue at Risk': '£312M', 'Suppliers Impacted': '1,247', 'Categories': '8 major', 'Mitigation Deployed': '£16.5M' } },
+  eu_nl: { lat: 52.1, lng: 5.3, label: 'EU / Netherlands', type: 'destination', risk: 'exposed', rev: 'Major re-export hub', detail: { 'Role': 'EU food re-export hub', 'Iran Food Imports (EU)': '€225M', 'Primary': 'Nut processing, distribution' } },
+  suez: { lat: 30.0, lng: 32.6, label: 'Suez Canal', type: 'route', risk: 'high', rev: 'Rerouting hub', detail: { 'Status': 'Open but diverted traffic', 'Congestion': 'Increasing', 'Cape Rerouting': '+16 days, +$933K/voyage' } },
+  cape: { lat: -34.4, lng: 18.5, label: 'Cape of Good Hope', type: 'route', risk: 'active', rev: 'Alternative route', detail: { 'Status': 'Active alternative', 'Extra Transit': '+16 days', 'Extra Cost': '+$933K/voyage', 'Capacity': 'Under pressure' } },
+};
+
+const ROUTES = [
+  { from: 'iran', to: 'hormuz', type: 'disrupted', width: 4, label: 'Export ban' },
+  { from: 'hormuz', to: 'suez', type: 'disrupted', width: 5, label: 'Strait closed' },
+  { from: 'gulf_fert', to: 'hormuz', type: 'disrupted', width: 4, label: 'Fertiliser blocked' },
+  { from: 'gulf_petro', to: 'hormuz', type: 'disrupted', width: 3, label: 'Petrochemicals' },
+  { from: 'suez', to: 'cape', type: 'rerouted', width: 3, label: '+16 days' },
+  { from: 'cape', to: 'uk', type: 'rerouted', width: 3, label: 'Cape route' },
+  { from: 'cape', to: 'eu_nl', type: 'rerouted', width: 2, label: 'EU via Cape' },
+  { from: 'usa_ca', to: 'uk', type: 'alternative', width: 3, label: 'US pistachios' },
+  { from: 'turkey', to: 'uk', type: 'alternative', width: 3, label: 'Turkish supply' },
+  { from: 'turkey', to: 'eu_nl', type: 'alternative', width: 2, label: 'Turkish supply' },
+  { from: 'spain', to: 'uk', type: 'alternative', width: 2, label: 'Spanish saffron' },
+  { from: 'tunisia', to: 'eu_nl', type: 'alternative', width: 2, label: 'Tunisian dates' },
+  { from: 'tunisia', to: 'uk', type: 'alternative', width: 1, label: 'Dates' },
+  { from: 'south_africa', to: 'uk', type: 'alternative', width: 2, label: 'SA raisins' },
+];
+
+// =========================================
+// GEOGRAPHIC MAP
+// =========================================
+function initGeoMap() {
+  const container = document.getElementById('map-container');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'geo-canvas';
+  container.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  let hoveredNode = null;
+  let dottedMapCache = null; // offscreen canvas
+
+  // Simplified landmass point-in-polygon test data
+  const landPolygons = [
+    // Europe
+    [[-10,36],[0,43],[3,43],[7,44],[10,46],[13,45],[15,47],[20,48],[25,48],[30,50],[32,47],[36,42],[28,36],[25,35],[20,35],[10,37],[0,36]],
+    // UK/Ireland
+    [[-8,50],[-5,50],[-3,51],[0,51],[2,53],[0,56],[-2,58],[-5,57],[-6,55],[-8,52]],
+    // Africa
+    [[-17,15],[-5,5],[5,4],[10,2],[12,4],[20,5],[30,10],[35,12],[40,12],[45,12],[50,12],[42,0],[40,-5],[38,-10],[35,-20],[33,-28],[28,-34],[20,-35],[18,-30],[15,-25],[12,-15],[8,-5],[5,5],[0,5],[-5,5],[-10,6],[-15,11]],
+    // Middle East
+    [[36,37],[40,37],[43,34],[45,30],[48,29],[50,27],[55,25],[56,22],[52,18],[45,13],[43,12],[40,15],[37,20],[35,30],[36,33]],
+    // Central/East Asia
+    [[40,42],[50,45],[60,50],[70,55],[80,50],[90,47],[100,40],[105,35],[110,30],[120,25],[120,30],[125,35],[130,40],[135,35],[140,40],[145,45],[150,50],[140,55],[130,60],[120,65],[100,65],[80,60],[70,60],[60,55],[50,50],[40,45]],
+    // South Asia
+    [[65,30],[70,25],[72,20],[75,15],[77,8],[80,10],[85,20],[90,22],[88,26],[80,28],[72,30]],
+    // North America
+    [[-170,65],[-160,60],[-150,55],[-130,50],[-125,45],[-120,35],[-115,30],[-105,25],[-100,25],[-95,30],[-85,30],[-80,25],[-75,30],[-70,42],[-65,45],[-60,47],[-70,50],[-80,55],[-90,55],[-100,60],[-120,60],[-140,60],[-155,60],[-165,65]],
+    // South America
+    [[-80,10],[-75,5],[-70,-5],[-65,-10],[-55,-5],[-45,-3],[-35,-5],[-35,-10],[-38,-15],[-40,-20],[-45,-25],[-50,-28],[-55,-30],[-58,-35],[-65,-40],[-70,-45],[-75,-50],[-75,-40],[-70,-30],[-70,-20],[-75,-10],[-77,0],[-80,5]],
+    // Australia
+    [[115,-15],[120,-15],[130,-12],[135,-15],[140,-18],[145,-20],[148,-25],[150,-28],[150,-33],[148,-38],[140,-38],[135,-35],[130,-32],[125,-30],[118,-25],[115,-22],[114,-20]],
+  ];
+
+  function pointInPolygon(x, y, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1];
+      const xj = poly[j][0], yj = poly[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  function resize() {
+    W = container.clientWidth;
+    H = container.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    dottedMapCache = null; // rebuild on resize
+  }
+
+  function project(lat, lng) {
+    const x = (lng + 180) / 360 * W;
+    const latRad = lat * Math.PI / 180;
+    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+    const y = H / 2 - (mercN / Math.PI) * H / 2.8;
+    return { x: x * 0.85 + W * 0.12, y: y * 0.9 + H * 0.05 };
+  }
+
+  // Build dotted map on offscreen canvas
+  function buildDottedMap() {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = W * devicePixelRatio;
+    offscreen.height = H * devicePixelRatio;
+    const oc = offscreen.getContext('2d');
+    oc.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+    // Background
+    oc.fillStyle = '#060e0d';
+    oc.fillRect(0, 0, W, H);
+
+    // Subtle grid
+    oc.strokeStyle = 'rgba(58,172,163,0.04)';
+    oc.lineWidth = 0.5;
+    for (let lat = -60; lat <= 80; lat += 15) {
+      oc.beginPath();
+      const p1 = project(lat, -170); const p2 = project(lat, 170);
+      oc.moveTo(p1.x, p1.y); oc.lineTo(p2.x, p2.y); oc.stroke();
+    }
+    for (let lng = -180; lng <= 180; lng += 20) {
+      oc.beginPath();
+      const p1 = project(-60, lng); const p2 = project(80, lng);
+      oc.moveTo(p1.x, p1.y); oc.lineTo(p2.x, p2.y); oc.stroke();
+    }
+
+    // Dotted land
+    const step = 1.8;
+    for (let lat = -50; lat <= 72; lat += step) {
+      for (let lng = -170; lng <= 170; lng += step) {
+        let onLand = false;
+        for (const poly of landPolygons) {
+          if (pointInPolygon(lng, lat, poly)) { onLand = true; break; }
+        }
+        if (onLand) {
+          const p = project(lat, lng);
+          oc.beginPath();
+          oc.arc(p.x, p.y, 1.1, 0, Math.PI * 2);
+          oc.fillStyle = 'rgba(58,172,163,0.13)';
+          oc.fill();
+        }
+      }
+    }
+    return offscreen;
+  }
+
+  // Route colors
+  function routeColors(type) {
+    if (type === 'disrupted') return { base: 'rgba(217,64,64,', glow: '#d94040' };
+    if (type === 'rerouted') return { base: 'rgba(232,168,56,', glow: '#e8a838' };
+    return { base: 'rgba(58,172,163,', glow: '#3aaca3' };
+  }
+
+  // Draw routes with pulse beams
+  function drawRoutes(t) {
+    ROUTES.forEach((route, ri) => {
+      const from = NODES[route.from];
+      const to = NODES[route.to];
+      const p1 = project(from.lat, from.lng);
+      const p2 = project(to.lat, to.lng);
+      const colors = routeColors(route.type);
+
+      // Control point for curve
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const dist = Math.hypot(dx, dy);
+      const mx = (p1.x + p2.x) / 2 - dy * 0.15;
+      const my = (p1.y + p2.y) / 2 + dx * 0.08;
+
+      // Base path (subtle)
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.quadraticCurveTo(mx, my, p2.x, p2.y);
+
+      if (route.type === 'disrupted') {
+        ctx.setLineDash([8, 8]);
+        ctx.strokeStyle = colors.base + '0.25)';
+        ctx.lineWidth = route.width;
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Animated X marker
+        const xPhase = (Math.sin(t / 800) * 0.5 + 0.5);
+        ctx.save();
+        ctx.strokeStyle = colors.base + (0.4 + xPhase * 0.5) + ')';
+        ctx.lineWidth = 2;
+        const cx2 = mx, cy2 = my;
+        ctx.beginPath(); ctx.moveTo(cx2-6, cy2-6); ctx.lineTo(cx2+6, cy2+6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx2+6, cy2-6); ctx.lineTo(cx2-6, cy2+6); ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.strokeStyle = colors.base + '0.15)';
+        ctx.lineWidth = route.width + 2;
+        ctx.stroke();
+
+        // Glowing core line
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.quadraticCurveTo(mx, my, p2.x, p2.y);
+        ctx.strokeStyle = colors.base + '0.4)';
+        ctx.lineWidth = route.width * 0.6;
+        ctx.stroke();
+      }
+
+      // Animated particles (comet tails)
+      if (!reducedMotion) {
+        const numParticles = route.type === 'disrupted' ? 0 : 4;
+        const speed = route.type === 'rerouted' ? 4500 : 3000;
+        for (let i = 0; i < numParticles; i++) {
+          const phase = ((t / speed + ri * 0.17 + i * (1 / numParticles)) % 1);
+          // Quadratic bezier point
+          const ct = 1 - phase;
+          const px = ct*ct*p1.x + 2*ct*phase*mx + phase*phase*p2.x;
+          const py = ct*ct*p1.y + 2*ct*phase*my + phase*phase*p2.y;
+
+          // Trail (3 dots)
+          for (let j = 3; j >= 0; j--) {
+            const tp = Math.max(0, phase - j * 0.015);
+            const tct = 1 - tp;
+            const tx = tct*tct*p1.x + 2*tct*tp*mx + tp*tp*p2.x;
+            const ty = tct*tct*p1.y + 2*tct*tp*my + tp*tp*p2.y;
+            const alpha = (1 - j / 4) * 0.8;
+            const radius = (1 - j / 4) * 3;
+            ctx.beginPath();
+            ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+            ctx.fillStyle = colors.base + alpha + ')';
+            ctx.fill();
+          }
+
+          // Glow on lead particle
+          ctx.beginPath();
+          ctx.arc(px, py, 6, 0, Math.PI * 2);
+          ctx.fillStyle = colors.base + '0.15)';
+          ctx.fill();
+        }
+      }
+    });
+  }
+
+  // Node styling
+  function nodeStyle(node) {
+    const styles = {
+      crisis:      { color: '#d94040', glow: 'rgba(217,64,64,',   size: 14, shape: 'radar' },
+      disrupted:   { color: '#d94040', glow: 'rgba(217,64,64,',   size: 10, shape: 'circle' },
+      alternative: { color: '#3aaca3', glow: 'rgba(58,172,163,',  size: 10, shape: 'diamond' },
+      monitoring:  { color: '#3d6e6b', glow: 'rgba(61,110,107,',  size: 7,  shape: 'circle' },
+      destination: { color: '#3aaca3', glow: 'rgba(58,172,163,',  size: 13, shape: 'hexagon' },
+      route:       { color: '#e8a838', glow: 'rgba(232,168,56,',  size: 8,  shape: 'circle' },
+    };
+    return styles[node.type] || styles.monitoring;
+  }
+
+  // Draw shaped node
+  function drawShape(x, y, r, shape) {
+    ctx.beginPath();
+    if (shape === 'hexagon') {
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i - Math.PI / 6;
+        const px = x + r * Math.cos(angle);
+        const py = y + r * Math.sin(angle);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (shape === 'diamond') {
+      ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.8, y);
+      ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.8, y);
+      ctx.closePath();
+    } else {
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+  }
+
+  // Draw nodes
+  function drawNodes(t) {
+    Object.entries(NODES).forEach(([key, node]) => {
+      const pos = project(node.lat, node.lng);
+      const style = nodeStyle(node);
+      const isHovered = hoveredNode === key;
+      const pulse = 1 + Math.sin(t / 600 + key.length) * 0.1;
+      const s = style.size * (isHovered ? 1.25 : 1) * pulse;
+
+      // Radar rings for crisis nodes
+      if (style.shape === 'radar' && !reducedMotion) {
+        for (let ring = 0; ring < 3; ring++) {
+          const ringPhase = ((t / 2000 + ring * 0.33) % 1);
+          const ringR = s + ringPhase * s * 3;
+          const ringAlpha = (1 - ringPhase) * 0.25;
+          ctx.beginPath();
+          ctx.arc(pos.x, pos.y, ringR, 0, Math.PI * 2);
+          ctx.strokeStyle = style.glow + ringAlpha + ')';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // Outer glow haze
+      const glowR = s * 3;
+      const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, glowR);
+      grad.addColorStop(0, style.glow + '0.2)');
+      grad.addColorStop(0.5, style.glow + '0.05)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, glowR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Outer ring
+      drawShape(pos.x, pos.y, s, style.shape);
+      ctx.strokeStyle = style.color;
+      ctx.lineWidth = isHovered ? 2.5 : 1.8;
+      ctx.stroke();
+
+      // Inner fill
+      drawShape(pos.x, pos.y, s * 0.55, style.shape);
+      const innerGrad = ctx.createRadialGradient(pos.x, pos.y - s * 0.2, 0, pos.x, pos.y, s * 0.55);
+      innerGrad.addColorStop(0, style.color);
+      innerGrad.addColorStop(1, style.glow + '0.6)');
+      ctx.fillStyle = innerGrad;
+      ctx.fill();
+
+      // Highlight dot
+      ctx.beginPath();
+      ctx.arc(pos.x - s * 0.15, pos.y - s * 0.15, s * 0.15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fill();
+
+      // Label with backdrop pill
+      const showDetail = isHovered || node.type === 'crisis' || node.type === 'destination';
+      const label = node.label;
+      ctx.font = (isHovered ? '600 12px' : '500 10px') + " 'Inter', sans-serif";
+      const labelW = ctx.measureText(label).width;
+      const labelX = pos.x;
+      const labelY = pos.y - s - 10;
+
+      // Backdrop pill
+      if (showDetail) {
+        ctx.fillStyle = 'rgba(6,14,13,0.75)';
+        const pillPad = 6;
+        ctx.beginPath();
+        ctx.roundRect(labelX - labelW/2 - pillPad, labelY - 10, labelW + pillPad*2, 16, 4);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(58,172,163,0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(234,245,243,0.85)';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, labelX, labelY);
+
+      // Revenue sublabel
+      if (showDetail) {
+        ctx.font = "400 9px 'Inter', sans-serif";
+        ctx.fillStyle = 'rgba(109,158,154,0.9)';
+        ctx.fillText(node.rev, pos.x, labelY - 14);
+      }
+    });
+  }
+
+  // Hormuz danger zone
+  function drawHormuzZone(t) {
+    const hz = project(26.6, 56.3);
+    // Concentric warning rings
+    if (!reducedMotion) {
+      for (let i = 0; i < 4; i++) {
+        const phase = ((t / 3000 + i * 0.25) % 1);
+        const r = 20 + phase * 100;
+        const alpha = (1 - phase) * 0.12;
+        ctx.beginPath();
+        ctx.arc(hz.x, hz.y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(217,64,64,${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Danger zone glow
+    const grad = ctx.createRadialGradient(hz.x, hz.y, 0, hz.x, hz.y, 90);
+    grad.addColorStop(0, 'rgba(217,64,64,0.1)');
+    grad.addColorStop(0.6, 'rgba(217,64,64,0.03)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(hz.x - 90, hz.y - 90, 180, 180);
+
+    // "STRAIT CLOSED" label
+    ctx.font = "700 8px 'Inter', sans-serif";
+    ctx.fillStyle = `rgba(217,64,64,${0.5 + Math.sin(t / 500) * 0.3})`;
+    ctx.textAlign = 'center';
+    ctx.letterSpacing = '2px';
+    ctx.fillText('STRAIT CLOSED', hz.x, hz.y + 45);
+  }
+
+  // Mouse interaction
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let found = null;
+    Object.entries(NODES).forEach(([key, node]) => {
+      const pos = project(node.lat, node.lng);
+      if (Math.hypot(mx - pos.x, my - pos.y) < 22) found = key;
+    });
+    hoveredNode = found;
+    canvas.style.cursor = found ? 'pointer' : 'default';
+
+    const tooltip = document.getElementById('tooltip');
+    if (found) {
+      const node = NODES[found];
+      const riskColor = node.risk === 'critical' || node.type === 'crisis' ? 'var(--mondra-red)' :
+                        node.risk === 'high' || node.risk === 'constrained' ? 'var(--mondra-amber)' : 'var(--mondra-teal)';
+      let html = `<div class="tooltip-accent" style="background:${riskColor}"></div><div class="tooltip-inner">`;
+      html += `<div class="tooltip-title">${node.label}</div>`;
+      if (node.detail) {
+        Object.entries(node.detail).forEach(([k, v]) => {
+          const vs = v.toString();
+          const cls = vs.startsWith('+') || vs.includes('Critical') || vs.includes('Closed') || vs.includes('Halted') || vs.includes('halted') ? 'red' :
+                      vs.includes('Active') || vs.includes('Good') || vs.includes('Sufficient') ? 'teal' : '';
+          html += `<div class="tooltip-row"><span class="tooltip-label">${k}</span><span class="tooltip-val ${cls}">${v}</span></div>`;
+        });
+      }
+      html += '</div>';
+      tooltip.innerHTML = html;
+      tooltip.style.left = Math.min(e.clientX + 16, window.innerWidth - 300) + 'px';
+      tooltip.style.top = (e.clientY - 10) + 'px';
+      tooltip.classList.add('show');
+    } else {
+      tooltip.classList.remove('show');
+    }
+  });
+
+  canvas.addEventListener('click', () => { if (hoveredNode) showDetail(hoveredNode); });
+
+  // Animation loop
+  function animate(t) {
+    ctx.clearRect(0, 0, W, H);
+    // Blit cached dotted map
+    if (!dottedMapCache) dottedMapCache = buildDottedMap();
+    ctx.drawImage(dottedMapCache, 0, 0, W, H);
+
+    drawHormuzZone(t);
+    drawRoutes(t);
+    drawNodes(t);
+    requestAnimationFrame(animate);
+  }
+
+  resize();
+  window.addEventListener('resize', () => { resize(); });
+  animate(0);
+  animateCounters();
+}
+
+// =========================================
+// NODE CASCADE (Force-directed graph)
+// =========================================
+function initForceGraph() {
+  const canvas = document.getElementById('force-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  let currentFilter = 'all';
+  let hoveredNode = null;
+  let dragNode = null;
+
+  const graphNodes = [
+    { id: 'ev1', label: 'US-Israeli Strikes', type: 'event', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 20 },
+    { id: 'ev2', label: 'Export Ban', type: 'event', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 18 },
+    { id: 'ev3', label: 'Hormuz Closure', type: 'event', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 22 },
+    { id: 'pistachio', label: 'Pistachios', type: 'commodity', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 18, detail: '17% EU supply halted' },
+    { id: 'saffron', label: 'Saffron', type: 'commodity', group: 'saffron', x: 0, y: 0, vx: 0, vy: 0, size: 16, detail: '>90% global supply' },
+    { id: 'raisins', label: 'Raisins/Sultanas', type: 'commodity', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 14, detail: '€54M EU trade' },
+    { id: 'dates', label: 'Dates', type: 'commodity', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 12, detail: '€28M EU trade' },
+    { id: 'urea', label: 'Urea Fertiliser', type: 'commodity', group: 'fertiliser', x: 0, y: 0, vx: 0, vy: 0, size: 20, detail: '+34% futures' },
+    { id: 'phosphate', label: 'Phosphates', type: 'commodity', group: 'fertiliser', x: 0, y: 0, vx: 0, vy: 0, size: 16, detail: '+22%' },
+    { id: 'hdpe', label: 'HDPE/PP', type: 'commodity', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 14, detail: '+18% petrochemicals' },
+    { id: 'sup_ahmadi', label: 'Ahmadi Trading', type: 'supplier', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: '100% Iran — CRITICAL' },
+    { id: 'sup_isfahan', label: 'Isfahan Saffron', type: 'supplier', group: 'saffron', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: '100% Iran — CRITICAL' },
+    { id: 'sup_persia', label: 'Persia Dried Fruits', type: 'supplier', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: '100% Iran — CRITICAL' },
+    { id: 'sup_euronut', label: 'Euronut BV', type: 'supplier', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: '45% Iran blended' },
+    { id: 'sup_gulf', label: 'Gulf Petrochem', type: 'supplier', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: 'Hormuz transit' },
+    { id: 'sup_anatolia', label: 'Anatolia Raisin', type: 'supplier', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 10, detail: 'Alternative — constrained' },
+    { id: 'cat_nuts', label: 'Nuts & Seeds', type: 'category', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 16, detail: '8,400 SKUs' },
+    { id: 'cat_spice', label: 'Spices & Herbs', type: 'category', group: 'saffron', x: 0, y: 0, vx: 0, vy: 0, size: 14, detail: '2,100 SKUs' },
+    { id: 'cat_dried', label: 'Dried Fruit', type: 'category', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 14, detail: '5,600 SKUs' },
+    { id: 'cat_bakery', label: 'Bakery & Confectionery', type: 'category', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 16, detail: '12,300 SKUs' },
+    { id: 'cat_fresh', label: 'Fresh Produce', type: 'category', group: 'fertiliser', x: 0, y: 0, vx: 0, vy: 0, size: 18, detail: '19,400 SKUs' },
+    { id: 'cat_pack', label: 'All Packaging', type: 'category', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 14, detail: '680K SKUs' },
+    { id: 'sku1', label: 'Tesco Pistachio 300g', type: 'sku', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£4.2M risk' },
+    { id: 'sku2', label: 'Schwartz Saffron', type: 'sku', group: 'saffron', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£890K risk' },
+    { id: 'sku3', label: 'Whitworths Sultanas', type: 'sku', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£2.1M risk' },
+    { id: 'sku4', label: 'KP Roasted Pistachios', type: 'sku', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£1.8M risk' },
+    { id: 'sku5', label: 'Natco Dates 500g', type: 'sku', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£680K risk' },
+    { id: 'sku6', label: 'Bahlsen Baklava', type: 'sku', group: 'pistachio', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£290K risk' },
+    { id: 'sku7', label: 'Plastic-wrapped SKUs', type: 'sku', group: 'all', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£48M category' },
+    { id: 'sku8', label: 'Fresh Produce (all)', type: 'sku', group: 'fertiliser', x: 0, y: 0, vx: 0, vy: 0, size: 8, detail: '£180M category' },
+  ];
+
+  const graphEdges = [
+    { from: 'ev1', to: 'pistachio', strength: 1 }, { from: 'ev2', to: 'pistachio', strength: 1 },
+    { from: 'ev2', to: 'saffron', strength: 1 }, { from: 'ev2', to: 'raisins', strength: 1 },
+    { from: 'ev2', to: 'dates', strength: 1 }, { from: 'ev3', to: 'urea', strength: 1 },
+    { from: 'ev3', to: 'phosphate', strength: 1 }, { from: 'ev3', to: 'hdpe', strength: 1 },
+    { from: 'pistachio', to: 'sup_ahmadi', strength: 0.8 }, { from: 'pistachio', to: 'sup_euronut', strength: 0.6 },
+    { from: 'saffron', to: 'sup_isfahan', strength: 1 }, { from: 'raisins', to: 'sup_persia', strength: 1 },
+    { from: 'raisins', to: 'sup_anatolia', strength: 0.5 }, { from: 'hdpe', to: 'sup_gulf', strength: 0.8 },
+    { from: 'sup_ahmadi', to: 'cat_nuts', strength: 0.9 }, { from: 'sup_euronut', to: 'cat_nuts', strength: 0.6 },
+    { from: 'sup_euronut', to: 'cat_bakery', strength: 0.5 }, { from: 'sup_isfahan', to: 'cat_spice', strength: 1 },
+    { from: 'sup_persia', to: 'cat_dried', strength: 1 }, { from: 'sup_anatolia', to: 'cat_dried', strength: 0.4 },
+    { from: 'sup_gulf', to: 'cat_pack', strength: 0.8 },
+    { from: 'urea', to: 'cat_fresh', strength: 0.9 }, { from: 'phosphate', to: 'cat_fresh', strength: 0.7 },
+    { from: 'pistachio', to: 'cat_bakery', strength: 0.6 },
+    { from: 'cat_nuts', to: 'sku1', strength: 0.8 }, { from: 'cat_nuts', to: 'sku4', strength: 0.7 },
+    { from: 'cat_spice', to: 'sku2', strength: 1 }, { from: 'cat_dried', to: 'sku3', strength: 0.8 },
+    { from: 'cat_dried', to: 'sku5', strength: 0.6 }, { from: 'cat_bakery', to: 'sku6', strength: 0.7 },
+    { from: 'cat_pack', to: 'sku7', strength: 0.5 }, { from: 'cat_fresh', to: 'sku8', strength: 0.9 },
+  ];
+
+  function nodeColor(type) {
+    return { event: '#d94040', commodity: '#e8a838', supplier: '#6366f1', category: '#3aaca3', sku: '#5ce0d6' }[type] || '#3d6e6b';
+  }
+  function nodeColorRGBA(type) {
+    return { event: '217,64,64', commodity: '232,168,56', supplier: '99,102,241', category: '58,172,163', sku: '92,224,214' }[type] || '61,110,107';
+  }
+
+  function resize() {
+    const wrap = canvas.parentElement;
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    graphNodes.forEach(n => {
+      if (n.x === 0 && n.y === 0) {
+        n.x = W * 0.2 + Math.random() * W * 0.6;
+        n.y = H * 0.2 + Math.random() * H * 0.6;
+      }
+    });
+  }
+
+  function simulate() {
+    const alpha = 0.3, repulsion = 800, attraction = 0.005;
+    const center = { x: W / 2, y: H / 2 };
+    const activeNodes = graphNodes.filter(n => currentFilter === 'all' || n.group === currentFilter || n.group === 'all');
+    const activeIds = new Set(activeNodes.map(n => n.id));
+    const activeEdges = graphEdges.filter(e => activeIds.has(e.from) && activeIds.has(e.to));
+
+    for (let i = 0; i < activeNodes.length; i++) {
+      for (let j = i + 1; j < activeNodes.length; j++) {
+        const a = activeNodes[i], b = activeNodes[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d = Math.max(Math.hypot(dx, dy), 1);
+        const f = repulsion / (d * d);
+        a.vx -= dx / d * f * alpha; a.vy -= dy / d * f * alpha;
+        b.vx += dx / d * f * alpha; b.vy += dy / d * f * alpha;
+      }
+    }
+    activeEdges.forEach(e => {
+      const a = graphNodes.find(n => n.id === e.from);
+      const b = graphNodes.find(n => n.id === e.to);
+      if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.hypot(dx, dy);
+      const f = d * attraction * (e.strength || 1);
+      a.vx += dx / d * f; a.vy += dy / d * f;
+      b.vx -= dx / d * f; b.vy -= dy / d * f;
+    });
+    activeNodes.forEach(n => {
+      n.vx += (center.x - n.x) * 0.001;
+      n.vy += (center.y - n.y) * 0.001;
+    });
+    activeNodes.forEach(n => {
+      if (n === dragNode) return;
+      n.vx *= 0.85; n.vy *= 0.85;
+      n.x += n.vx; n.y += n.vy;
+      n.x = Math.max(40, Math.min(W - 40, n.x));
+      n.y = Math.max(40, Math.min(H - 40, n.y));
+    });
+  }
+
+  // Draw node shape for force graph
+  function drawForceNodeShape(x, y, r, type) {
+    ctx.beginPath();
+    if (type === 'event') { // pentagon
+      for (let i = 0; i < 5; i++) {
+        const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+        const px = x + r * Math.cos(angle), py = y + r * Math.sin(angle);
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (type === 'commodity') { // rounded square
+      const hr = r * 0.85;
+      ctx.roundRect(x - hr, y - hr, hr * 2, hr * 2, r * 0.25);
+    } else if (type === 'supplier') { // diamond
+      ctx.moveTo(x, y - r); ctx.lineTo(x + r * 0.75, y);
+      ctx.lineTo(x, y + r); ctx.lineTo(x - r * 0.75, y); ctx.closePath();
+    } else {
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+    }
+  }
+
+  function drawForce(t) {
+    ctx.clearRect(0, 0, W, H);
+    // Radial gradient background
+    const bgGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.6);
+    bgGrad.addColorStop(0, '#0b1e1c');
+    bgGrad.addColorStop(1, '#060e0d');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Ambient particles
+    if (!reducedMotion) {
+      for (let i = 0; i < 25; i++) {
+        const px = (Math.sin(t / 5000 + i * 7.3) * 0.5 + 0.5) * W;
+        const py = (Math.cos(t / 6000 + i * 4.1) * 0.5 + 0.5) * H;
+        ctx.beginPath();
+        ctx.arc(px, py, 1, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(58,172,163,0.08)';
+        ctx.fill();
+      }
+    }
+
+    const activeNodes = graphNodes.filter(n => currentFilter === 'all' || n.group === currentFilter || n.group === 'all');
+    const activeIds = new Set(activeNodes.map(n => n.id));
+    const activeEdges = graphEdges.filter(e => activeIds.has(e.from) && activeIds.has(e.to));
+
+    // Edges with curved bezier and gradient pulses
+    activeEdges.forEach((e, ei) => {
+      const a = graphNodes.find(n => n.id === e.from);
+      const b = graphNodes.find(n => n.id === e.to);
+      if (!a || !b) return;
+
+      const isConnectedToHovered = hoveredNode && (a.id === hoveredNode || b.id === hoveredNode);
+      const edgeAlpha = hoveredNode ? (isConnectedToHovered ? 0.5 : 0.08) : 0.25;
+
+      // Curved edge
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const mx = (a.x + b.x) / 2 - dy * 0.1;
+      const my = (a.y + b.y) / 2 + dx * 0.1;
+
+      // Glow for strong edges
+      if ((e.strength || 0.5) >= 0.8 && isConnectedToHovered) {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.quadraticCurveTo(mx, my, b.x, b.y);
+        ctx.strokeStyle = `rgba(${nodeColorRGBA(a.type)},0.1)`;
+        ctx.lineWidth = 4 + (e.strength || 0.5) * 4;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(mx, my, b.x, b.y);
+      const grad = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      grad.addColorStop(0, `rgba(${nodeColorRGBA(a.type)},${edgeAlpha})`);
+      grad.addColorStop(1, `rgba(${nodeColorRGBA(b.type)},${edgeAlpha})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1 + (e.strength || 0.5) * 2;
+      ctx.stroke();
+
+      // Animated pulse dot
+      if (!reducedMotion) {
+        const phase = ((t / 2500 + ei * 0.07) % 1);
+        const ct = 1 - phase;
+        const px = ct*ct*a.x + 2*ct*phase*mx + phase*phase*b.x;
+        const py = ct*ct*a.y + 2*ct*phase*my + phase*phase*b.y;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${nodeColorRGBA(b.type)},${edgeAlpha * 2})`;
+        ctx.fill();
+      }
+    });
+
+    // Nodes
+    activeNodes.forEach(n => {
+      const color = nodeColor(n.type);
+      const rgba = nodeColorRGBA(n.type);
+      const isHovered = hoveredNode === n.id;
+      const dimmed = hoveredNode && !isHovered && !activeEdges.some(e => (e.from === hoveredNode && e.to === n.id) || (e.to === hoveredNode && e.from === n.id));
+      const s = n.size * (isHovered ? 1.3 : 1);
+      const alpha = dimmed ? 0.25 : 1;
+
+      // Warning pulse rings for events
+      if (n.type === 'event' && !reducedMotion) {
+        for (let ring = 0; ring < 2; ring++) {
+          const rp = ((t / 2000 + ring * 0.5) % 1);
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, s + rp * s * 2, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(${rgba},${(1 - rp) * 0.2 * alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      // Outer glow
+      const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, s * 2.5);
+      glow.addColorStop(0, `rgba(${rgba},${0.15 * alpha})`);
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, s * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Shape fill
+      drawForceNodeShape(n.x, n.y, s, n.type);
+      const nodeGrad = ctx.createRadialGradient(n.x, n.y - s * 0.3, 0, n.x, n.y, s);
+      nodeGrad.addColorStop(0, color);
+      nodeGrad.addColorStop(1, `rgba(${rgba},0.6)`);
+      ctx.fillStyle = nodeGrad;
+      ctx.globalAlpha = alpha;
+      ctx.fill();
+
+      // Border
+      drawForceNodeShape(n.x, n.y, s, n.type);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = isHovered ? 2.5 : 1.5;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Label
+      const showLabel = n.type !== 'sku' || isHovered;
+      if (showLabel) {
+        ctx.font = (isHovered ? '600 12px' : '500 10px') + " 'Inter', sans-serif";
+        ctx.fillStyle = `rgba(234,245,243,${alpha})`;
+        ctx.textAlign = 'center';
+        ctx.fillText(n.label, n.x, n.y - s - 7);
+      }
+
+      if (isHovered && n.detail) {
+        ctx.font = "400 10px 'Inter', sans-serif";
+        ctx.fillStyle = 'rgba(109,158,154,0.9)';
+        ctx.fillText(n.detail, n.x, n.y - s - 19);
+      }
+    });
+  }
+
+  canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    if (dragNode) { dragNode.x = mx; dragNode.y = my; dragNode.vx = 0; dragNode.vy = 0; return; }
+    let found = null;
+    graphNodes.forEach(n => { if (Math.hypot(mx - n.x, my - n.y) < n.size + 5) found = n.id; });
+    hoveredNode = found;
+    canvas.style.cursor = found ? 'pointer' : 'default';
+  });
+  canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    graphNodes.forEach(n => { if (Math.hypot(mx - n.x, my - n.y) < n.size + 5) dragNode = n; });
+  });
+  canvas.addEventListener('mouseup', () => { dragNode = null; });
+  canvas.addEventListener('mouseleave', () => { dragNode = null; hoveredNode = null; });
+
+  window._setForceFilter = function(f) { currentFilter = f; };
+
+  function animate(t) {
+    simulate();
+    drawForce(t);
+    requestAnimationFrame(animate);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  animate(0);
+}
+
+// =========================================
+// FLOW ANALYSIS (Animated Sankey)
+// =========================================
+function initFlowView() {
+  const canvas = document.getElementById('flow-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+
+  const columns = [
+    { title: 'CRISIS EVENTS', icon: '\u26A0', x: 0.07, items: [
+      { label: 'US-Israeli Strikes', risk: 'critical', value: 100 },
+      { label: 'Iran Export Ban', risk: 'critical', value: 90 },
+      { label: 'Hormuz Closure', risk: 'critical', value: 110 },
+    ]},
+    { title: 'COMMODITIES', icon: '\u2042', x: 0.25, items: [
+      { label: 'Pistachios', risk: 'critical', value: 48 },
+      { label: 'Saffron', risk: 'critical', value: 62 },
+      { label: 'Raisins/Sultanas', risk: 'high', value: 34 },
+      { label: 'Dates', risk: 'high', value: 14 },
+      { label: 'Urea/Fertiliser', risk: 'critical', value: 180 },
+      { label: 'HDPE/PP', risk: 'high', value: 48 },
+    ]},
+    { title: 'SUPPLIERS', icon: '\u2692', x: 0.44, items: [
+      { label: 'Ahmadi Trading', risk: 'critical', value: 30 },
+      { label: 'Isfahan Saffron', risk: 'critical', value: 25 },
+      { label: 'Persia Dried Fruits', risk: 'critical', value: 20 },
+      { label: 'Euronut BV', risk: 'high', value: 18 },
+      { label: 'Gulf Petrochem', risk: 'high', value: 40 },
+      { label: 'Anatolia Raisin', risk: 'medium', value: 15 },
+      { label: '697 fert. suppliers', risk: 'high', value: 120 },
+    ]},
+    { title: 'CATEGORIES', icon: '\u2630', x: 0.64, items: [
+      { label: 'Nuts & Seeds (8,400)', risk: 'critical', value: 48 },
+      { label: 'Spices & Herbs (2,100)', risk: 'critical', value: 62 },
+      { label: 'Dried Fruit (5,600)', risk: 'high', value: 34 },
+      { label: 'Bakery (12,300)', risk: 'high', value: 28 },
+      { label: 'Fresh Produce (19,400)', risk: 'high', value: 180 },
+      { label: 'Packaging (680K)', risk: 'medium', value: 48 },
+    ]},
+    { title: 'REVENUE AT RISK', icon: '\u00A3', x: 0.84, items: [
+      { label: '£48M Nuts', risk: 'critical', value: 48 },
+      { label: '£62M Spices', risk: 'critical', value: 62 },
+      { label: '£34M Dried Fruit', risk: 'high', value: 34 },
+      { label: '£28M Bakery', risk: 'high', value: 28 },
+      { label: '£180M Fresh', risk: 'high', value: 180 },
+      { label: '£48M Packaging', risk: 'medium', value: 48 },
+    ]},
+  ];
+
+  const flows = [
+    [0,0,1,0,0.7],[0,1,1,0,0.5],[0,1,1,1,1],[0,1,1,2,0.8],[0,1,1,3,0.6],
+    [0,2,1,4,1],[0,2,1,5,0.8],[0,0,1,4,0.3],
+    [1,0,2,0,0.9],[1,0,2,3,0.6],[1,1,2,1,1],[1,2,2,2,1],[1,2,2,5,0.4],
+    [1,5,2,4,0.8],[1,4,2,6,1],[1,3,2,2,0.3],
+    [2,0,3,0,0.9],[2,0,3,3,0.4],[2,1,3,1,1],[2,2,3,2,1],[2,3,3,0,0.5],[2,3,3,3,0.4],
+    [2,4,3,5,0.8],[2,5,3,2,0.4],[2,6,3,4,1],
+    [3,0,4,0,1],[3,1,4,1,1],[3,2,4,2,1],[3,3,4,3,1],[3,4,4,4,1],[3,5,4,5,1],
+  ];
+
+  let particles = [];
+
+  function riskColor(risk) { return risk === 'critical' ? '#d94040' : risk === 'high' ? '#e8a838' : '#3aaca3'; }
+  function riskRGBA(risk) { return risk === 'critical' ? '217,64,64' : risk === 'high' ? '232,168,56' : '58,172,163'; }
+
+  function resize() {
+    const wrap = canvas.parentElement;
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+
+  function getNodePos(colIdx, itemIdx) {
+    const col = columns[colIdx];
+    const x = col.x * W;
+    const itemH = Math.min(52, (H - 100) / col.items.length);
+    const startY = 55 + (H - 100 - col.items.length * itemH) / 2;
+    return { x, y: startY + itemIdx * itemH + itemH / 2 };
+  }
+
+  function spawnParticles() {
+    flows.forEach(f => {
+      if (Math.random() > 0.04) return;
+      const from = getNodePos(f[0], f[1]);
+      const to = getNodePos(f[2], f[3]);
+      const risk = columns[f[0]].items[f[1]].risk;
+      particles.push({
+        x: from.x, y: from.y, tx: to.x, ty: to.y,
+        progress: 0,
+        speed: (risk === 'critical' ? 0.012 : risk === 'high' ? 0.008 : 0.005) + Math.random() * 0.004,
+        color: riskRGBA(risk),
+        size: 2 + f[4] * 2.5,
+      });
+    });
+  }
+
+  function drawFlow(t) {
+    ctx.clearRect(0, 0, W, H);
+    // Background
+    const bgGrad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.6);
+    bgGrad.addColorStop(0, '#0b1e1c');
+    bgGrad.addColorStop(1, '#060e0d');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Column headers with connecting line
+    ctx.strokeStyle = 'rgba(58,172,163,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(columns[0].x * W, 22);
+    ctx.lineTo(columns[columns.length - 1].x * W, 22);
+    ctx.stroke();
+
+    columns.forEach((col, ci) => {
+      const cx = col.x * W;
+      // Header dot
+      ctx.beginPath();
+      ctx.arc(cx, 22, 3, 0, Math.PI * 2);
+      ctx.fillStyle = ci === 0 ? '#d94040' : ci === columns.length - 1 ? '#e8a838' : '#3aaca3';
+      ctx.fill();
+
+      ctx.font = "600 9px 'Inter', sans-serif";
+      ctx.fillStyle = '#6d9e9a';
+      ctx.textAlign = 'center';
+      ctx.fillText(col.title, cx, 40);
+    });
+
+    // Flow bands (Sankey-style)
+    flows.forEach(f => {
+      const from = getNodePos(f[0], f[1]);
+      const to = getNodePos(f[2], f[3]);
+      const risk = columns[f[0]].items[f[1]].risk;
+      const rgba = riskRGBA(risk);
+      const bandWidth = 1 + f[4] * 4;
+      const mx = (from.x + to.x) / 2;
+
+      // Filled band
+      ctx.beginPath();
+      ctx.moveTo(from.x + 56, from.y - bandWidth/2);
+      ctx.bezierCurveTo(mx, from.y - bandWidth/2, mx, to.y - bandWidth/2, to.x - 56, to.y - bandWidth/2);
+      ctx.lineTo(to.x - 56, to.y + bandWidth/2);
+      ctx.bezierCurveTo(mx, to.y + bandWidth/2, mx, from.y + bandWidth/2, from.x + 56, from.y + bandWidth/2);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${rgba},0.06)`;
+      ctx.fill();
+
+      // Edge stroke
+      ctx.beginPath();
+      ctx.moveTo(from.x + 56, from.y);
+      ctx.bezierCurveTo(mx, from.y, mx, to.y, to.x - 56, to.y);
+      ctx.strokeStyle = `rgba(${rgba},0.12)`;
+      ctx.lineWidth = bandWidth;
+      ctx.stroke();
+    });
+
+    // Node cards (glass)
+    columns.forEach((col, ci) => {
+      col.items.forEach((item, ii) => {
+        const pos = getNodePos(ci, ii);
+        const color = riskColor(item.risk);
+        const rgba = riskRGBA(item.risk);
+        const barW = 110;
+        const barH = Math.min(38, (H - 100) / col.items.length - 6);
+
+        // Glass card
+        ctx.fillStyle = `rgba(12,28,26,0.6)`;
+        ctx.beginPath();
+        ctx.roundRect(pos.x - barW/2, pos.y - barH/2, barW, barH, 7);
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = `rgba(${rgba},0.25)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Left accent bar
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(pos.x - barW/2, pos.y - barH/2, 3, barH, [7, 0, 0, 7]);
+        ctx.fill();
+
+        // Label
+        ctx.font = "500 10px 'Inter', sans-serif";
+        ctx.fillStyle = '#eaf5f3';
+        ctx.textAlign = 'center';
+        ctx.fillText(item.label, pos.x + 2, pos.y + 3, barW - 14);
+      });
+    });
+
+    // Particles with comet tails
+    if (!reducedMotion) {
+      spawnParticles();
+      particles = particles.filter(p => p.progress < 1);
+      particles.forEach(p => {
+        p.progress += p.speed;
+        const t2 = p.progress;
+        const mx = (p.x + 56 + p.tx - 56) / 2;
+
+        // Trail (4 points)
+        for (let j = 4; j >= 0; j--) {
+          const tp = Math.max(0, t2 - j * 0.02);
+          const ct = 1 - tp;
+          const tx = ct*ct*ct*(p.x+56) + 3*ct*ct*tp*mx + 3*ct*tp*tp*mx + tp*tp*tp*(p.tx-56);
+          const ty = ct*ct*ct*p.y + 3*ct*ct*tp*p.y + 3*ct*tp*tp*p.ty + tp*tp*tp*p.ty;
+          const alpha = (1 - j / 5) * 0.7;
+          const radius = p.size * (1 - j / 5);
+
+          ctx.beginPath();
+          ctx.arc(tx, ty, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${p.color},${alpha})`;
+          ctx.fill();
+        }
+
+        // Lead particle glow
+        const ct = 1 - t2;
+        const lx = ct*ct*ct*(p.x+56) + 3*ct*ct*t2*mx + 3*ct*t2*t2*mx + t2*t2*t2*(p.tx-56);
+        const ly = ct*ct*ct*p.y + 3*ct*ct*t2*p.y + 3*ct*t2*t2*p.ty + t2*t2*t2*p.ty;
+        ctx.save();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = `rgba(${p.color},0.5)`;
+        ctx.beginPath();
+        ctx.arc(lx, ly, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${p.color},0.9)`;
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+
+  function animate(t) {
+    drawFlow(t);
+    requestAnimationFrame(animate);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  animate(0);
+}
+
+// =========================================
+// VIEW SWITCHING
+// =========================================
+let viewsInitialised = { geo: false, node: false, flow: false };
+
+function switchView(view, btn) {
+  ['geo', 'node', 'flow'].forEach(v => {
+    document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+  });
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else document.querySelector(`[data-view="${view}"]`).classList.add('active');
+
+  // Update pill
+  const toggle = document.getElementById('view-toggle');
+  const activeBtn = toggle.querySelector('.view-btn.active');
+  updatePill(toggle, 'view-pill', activeBtn);
+
+  // Lazy init
+  if (view === 'geo' && !viewsInitialised.geo) { initGeoMap(); viewsInitialised.geo = true; }
+  if (view === 'node' && !viewsInitialised.node) { initForceGraph(); viewsInitialised.node = true; }
+  if (view === 'flow' && !viewsInitialised.flow) { initFlowView(); viewsInitialised.flow = true; }
+}
+
+function setFilter(filter, btn) {
+  document.querySelectorAll('.force-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updatePill(document.getElementById('force-controls'), 'force-pill', btn);
+  if (window._setForceFilter) window._setForceFilter(filter);
+}
+
+function showDetail(nodeKey) {
+  const node = NODES[nodeKey];
+  if (!node) return;
+  const panel = document.getElementById('detail-panel');
+  const header = document.getElementById('detail-header');
+  const body = document.getElementById('detail-body');
+  const riskBar = document.getElementById('detail-risk-bar');
+
+  const typeColors = { crisis: '#d94040', disrupted: '#d94040', alternative: '#3aaca3', monitoring: '#3d6e6b', destination: '#3aaca3', route: '#e8a838' };
+  const barColor = typeColors[node.type] || '#3d6e6b';
+  riskBar.style.background = barColor;
+  header.innerHTML = `<h3>${node.label}</h3><div class="detail-type" style="color:${barColor}">${node.type.toUpperCase()} — ${node.risk.toUpperCase()}</div>`;
+
+  let html = '';
+  if (node.detail) {
+    Object.entries(node.detail).forEach(([k, v]) => {
+      const vs = v.toString();
+      const isNeg = vs.startsWith('+') || vs.includes('Critical') || vs.includes('Closed') || vs.includes('halted') || vs.includes('Halted');
+      const isPos = vs.includes('Active') || vs.includes('Good') || vs.includes('Sufficient');
+      const valColor = isNeg ? 'var(--mondra-red)' : isPos ? 'var(--mondra-teal)' : 'var(--text-primary)';
+      html += `<div class="detail-row"><span style="color:var(--text-secondary)">${k}</span><span style="font-weight:600;color:${valColor}">${v}</span></div>`;
+    });
+  }
+  body.innerHTML = html;
+  panel.classList.add('show');
+}
+
+function hideDetail() {
+  document.getElementById('detail-panel').classList.remove('show');
+}
+
+// Keyboard nav for view toggle
+document.addEventListener('keydown', (e) => {
+  if (e.target.classList.contains('view-btn')) {
+    const btns = [...document.querySelectorAll('.view-btn')];
+    const idx = btns.indexOf(e.target);
+    if (e.key === 'ArrowRight' && idx < btns.length - 1) { btns[idx + 1].focus(); btns[idx + 1].click(); }
+    if (e.key === 'ArrowLeft' && idx > 0) { btns[idx - 1].focus(); btns[idx - 1].click(); }
+  }
+});
+
+// Init first view
+initGeoMap();
+viewsInitialised.geo = true;
+</script>
+</body>
+</html>
